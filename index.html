@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChartSignal AI — NEPSE Stock Analyzer</title>
+<meta name="description" content="AI-powered NEPSE stock chart analyzer. Upload any candlestick chart and get precise buy/sell signals, entry points, stop-loss and price targets.">
+<meta property="og:title" content="ChartSignal AI — NEPSE Stock Analyzer">
+<meta property="og:description" content="Upload your NEPSE chart. Get AI-powered Buy/Sell signals in seconds.">
+<meta property="og:url" content="https://sagarkhanal.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg2: #0f1520;
+    --bg3: #151d2e;
+    --card: #111827;
+    --border: rgba(99,207,143,0.15);
+    --border2: rgba(99,207,143,0.3);
+    --accent: #63cf8f;
+    --accent2: #3aeb7a;
+    --red: #ff5e6c;
+    --amber: #ffb547;
+    --text: #e8f0fe;
+    --muted: #7a91b5;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,207,143,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,207,143,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 60px;
+    background: rgba(10,14,20,0.88);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.4; transform:scale(0.75); }
+  }
+  .nav-links { display:flex; gap:2rem; list-style:none; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-badge {
+    background: rgba(99,207,143,0.1);
+    border: 1px solid var(--border2);
+    color: var(--accent);
+    font-size: 0.7rem;
+    font-family: var(--mono);
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.06em;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 1;
+    padding: 140px 2rem 80px;
+    text-align: center;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(99,207,143,0.08);
+    border: 1px solid var(--border2);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    letter-spacing: 0.1em;
+  }
+  .hero h1 {
+    font-family: var(--mono);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.15;
+    color: #fff;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p {
+    color: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+  }
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-bottom: 3rem;
+  }
+  .stat-num {
+    font-family: var(--mono);
+    font-size: 1.5rem;
+    color: var(--accent);
+    display: block;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ANALYZER */
+  .analyzer-section {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem 80px;
+  }
+  .analyzer-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(21,29,46,0.5);
+  }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  .model-badge {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 3px 10px;
+    border-radius: 4px;
+  }
+
+  /* UPLOAD */
+  .upload-zone {
+    margin: 1.5rem;
+    border: 2px dashed rgba(99,207,143,0.2);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    background: rgba(99,207,143,0.02);
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(99,207,143,0.06);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.7; }
+  .upload-text {
+    font-family: var(--mono);
+    font-size: 0.875rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .upload-hint { color: var(--muted); font-size: 0.78rem; }
+  #preview-img {
+    display: none;
+    width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+
+  /* INPUTS */
+  .context-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 0 1.5rem 1rem;
+  }
+  .input-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.06em;
+  }
+  .input-group input, .input-group select {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .input-group input:focus, .input-group select:focus { border-color: var(--accent); }
+  .input-group select option { background: #111827; color: var(--text); }
+
+  /* BUTTON */
+  .analyze-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: calc(100% - 3rem);
+    margin: 0 1.5rem 1.5rem;
+    padding: 15px;
+    background: var(--accent);
+    color: #0a0e14;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .analyze-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+  .analyze-btn:active { transform: translateY(0); }
+  .analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  /* LOADING */
+  #loading {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+    margin: 0 1.5rem 1.5rem;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 2px solid rgba(99,207,143,0.12);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    animation: blink 1.2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+
+  /* ERROR */
+  #error-msg {
+    display: none;
+    margin: 0 1.5rem 1.5rem;
+    padding: 1rem 1.25rem;
+    background: rgba(255,94,108,0.08);
+    border: 1px solid rgba(255,94,108,0.3);
+    border-radius: 8px;
+    color: var(--red);
+    font-size: 0.85rem;
+    font-family: var(--mono);
+    line-height: 1.6;
+  }
+
+  /* RESULTS */
+  #results {
+    display: none;
+    margin: 0 1.5rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: rgba(21,29,46,0.8);
+    border-bottom: 1px solid var(--border);
+  }
+  .signal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 7px 18px;
+    border-radius: 6px;
+    letter-spacing: 0.06em;
+  }
+  .signal-buy  { background:rgba(99,207,143,0.14); color:var(--accent2); border:1px solid rgba(99,207,143,0.4); }
+  .signal-sell { background:rgba(255,94,108,0.14); color:var(--red);     border:1px solid rgba(255,94,108,0.4); }
+  .signal-hold { background:rgba(255,181,71,0.14); color:var(--amber);   border:1px solid rgba(255,181,71,0.4); }
+  .signal-neutral { background:rgba(122,145,181,0.12); color:var(--muted); border:1px solid rgba(122,145,181,0.25); }
+  .confidence-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.76rem;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .conf-track {
+    width: 80px; height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .conf-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.9s ease;
+    background: var(--accent);
+  }
+  .result-body { padding: 1.25rem; }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .result-metric {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+  }
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    color: var(--muted);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .green { color: var(--accent2) !important; }
+  .red   { color: var(--red) !important; }
+  .amber { color: var(--amber) !important; }
+  .result-analysis { font-size:0.9rem; line-height:1.75; color:#c5d4ea; }
+  .result-analysis strong {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+  }
+  .analysis-section { margin-bottom: 1rem; }
+
+  /* FEATURES */
+  .features {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem 100px;
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  .section-heading {
+    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3rem;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .feature-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .feature-icon {
+    width: 40px; height: 40px;
+    background: rgba(99,207,143,0.1);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+  .feature-title {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.03em;
+  }
+  .feature-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.6; }
+
+  /* HOW IT WORKS */
+  .how-section {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem 100px;
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .step {
+    text-align: center;
+    padding: 1.5rem 1rem;
+  }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 2rem;
+    color: rgba(99,207,143,0.2);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+  .step-title {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .step-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+  /* DISCLAIMER */
+  .disclaimer {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    margin: 0 auto 80px;
+    padding: 1.25rem 1.5rem;
+    background: rgba(255,181,71,0.05);
+    border: 1px solid rgba(255,181,71,0.2);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: rgba(255,181,71,0.8);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-family: var(--mono);
+    line-height: 2;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 700px) {
+    .context-row { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: 1fr 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    .hero-stats { gap: 1.5rem; }
+    nav .nav-links { display: none; }
+    .hero { padding: 120px 1.5rem 60px; }
+    .analyzer-section, .features, .how-section { padding-left: 1rem; padding-right: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-dot"></div>
+    CHARTSIGNAL.AI
+  </a>
+  <ul class="nav-links">
+    <li><a href="#analyzer">Analyzer</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How It Works</a></li>
+  </ul>
+  <span class="nav-badge">NEPSE · BETA</span>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">⬡ AI-POWERED TECHNICAL ANALYSIS FOR NEPSE</div>
+  <h1>Upload Chart.<br><span>Get Buy/Sell</span> Signals.</h1>
+  <p>Advanced AI analysis of NEPSE stock charts. Upload any candlestick chart and receive precise entry points, stop-loss levels, and price targets instantly.</p>
+  <div class="hero-stats">
+    <div>
+      <span class="stat-num">40+</span>
+      <span class="stat-label">Patterns detected</span>
+    </div>
+    <div>
+      <span class="stat-num">&lt;5s</span>
+      <span class="stat-label">Analysis time</span>
+    </div>
+    <div>
+      <span class="stat-num">NEPSE</span>
+      <span class="stat-label">Market focused</span>
+    </div>
+    <div>
+      <span class="stat-num">FREE</span>
+      <span class="stat-label">No signup needed</span>
+    </div>
+  </div>
+</section>
+
+<!-- ANALYZER -->
+<section class="analyzer-section" id="analyzer">
+  <div class="analyzer-card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="status-dot"></div>
+        CHART ANALYZER — LIVE
+      </div>
+      <span class="model-badge">claude-sonnet · vision API</span>
+    </div>
+
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept="image/*">
+      <img id="preview-img" alt="Chart preview">
+      <div id="upload-placeholder">
+        <div class="upload-icon">📊</div>
+        <div class="upload-text">Drop your NEPSE chart image here</div>
+        <div class="upload-hint">Click to browse · PNG, JPG, WebP · Max 10MB</div>
+      </div>
+    </div>
+
+    <div class="context-row">
+      <div class="input-group">
+        <label>STOCK SYMBOL (optional)</label>
+        <input type="text" id="stock-symbol" placeholder="e.g. HBL, NABIL, PPCL, SHINE" maxlength="12">
+      </div>
+      <div class="input-group">
+        <label>CHART TIMEFRAME</label>
+        <select id="timeframe">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="4h">4-Hour</option>
+          <option value="1h">1-Hour</option>
+          <option value="15m">15-Minute</option>
+        </select>
+      </div>
+    </div>
+    <div class="context-row">
+      <div class="input-group">
+        <label>ANALYSIS TYPE</label>
+        <select id="focus">
+          <option value="swing">Swing Trade (days to weeks)</option>
+          <option value="position">Position Trade (weeks to months)</option>
+          <option value="intraday">Intraday (same day)</option>
+          <option value="investment">Long-term Investment</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>CURRENT MARKET PRICE IN NPR (optional)</label>
+        <input type="number" id="current-price" placeholder="e.g. 1250.00" step="0.01" min="0">
+      </div>
+    </div>
+
+    <button class="analyze-btn" id="analyze-btn" disabled>
+      ⬡ &nbsp; ANALYZE CHART — GET SIGNAL
+    </button>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">SCANNING CANDLESTICK PATTERNS...</div>
+    </div>
+
+    <div id="error-msg"></div>
+
+    <div id="results">
+      <div class="result-header">
+        <div id="signal-badge" class="signal-badge">— SIGNAL</div>
+        <div class="confidence-bar">
+          <span id="conf-label">0%</span>
+          <div class="conf-track">
+            <div class="conf-fill" id="conf-fill" style="width:0%"></div>
+          </div>
+          <span style="font-size:0.68rem;letter-spacing:0.06em">CONFIDENCE</span>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="result-grid">
+          <div class="result-metric">
+            <div class="metric-label">BUY ZONE</div>
+            <div class="metric-value green" id="buy-zone">—</div>
+          </div>
+          <div class="result-metric">
+            <div class="metric-label">STOP LOSS</div>
+            <div class="metric-value red" id="stop-loss">—</div>
+          </div>
+          <div class="result-metric">
+            <div class="metric-label">TARGET 1</div>
+            <div class="metric-value amber" id="target1">—</div>
+          </div>
+          <div class="result-metric">
+            <div class="metric-label">TARGET 2</div>
+            <div class="metric-value amber" id="target2">—</div>
+          </div>
+          <div class="result-metric">
+            <div class="metric-label">TARGET 3</div>
+            <div class="metric-value amber" id="target3">—</div>
+          </div>
+          <div class="result-metric">
+            <div class="metric-label">RISK : REWARD</div>
+            <div class="metric-value" id="rratio">—</div>
+          </div>
+        </div>
+        <div class="result-analysis" id="analysis-text"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-title">// CAPABILITIES</div>
+  <h2 class="section-heading">What the AI detects</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🕯️</div>
+      <div class="feature-title">CANDLESTICK PATTERNS</div>
+      <div class="feature-desc">Doji, Hammer, Engulfing, Morning Star, Evening Star, Shooting Star, Harami and 40+ more patterns automatically detected.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <div class="feature-title">TREND ANALYSIS</div>
+      <div class="feature-desc">Identifies uptrend, downtrend, sideways channels, and breakout/breakdown points with strength confirmation.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-title">SUPPORT & RESISTANCE</div>
+      <div class="feature-desc">Key price levels, pivot points, and Fibonacci retracement zones for precision entries and exits.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📉</div>
+      <div class="feature-title">INDICATOR READING</div>
+      <div class="feature-desc">RSI, MACD, Bollinger Bands, Moving Averages — reads all visible indicators directly from your chart image.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">VOLUME ANALYSIS</div>
+      <div class="feature-desc">Volume confirmation for breakouts. Identifies accumulation and distribution phases for smarter entries.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <div class="feature-title">RISK MANAGEMENT</div>
+      <div class="feature-desc">Automatic stop-loss calculation, risk/reward ratio, and three tiered price targets for every signal generated.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="section-title">// WORKFLOW</div>
+  <h2 class="section-heading">How it works</h2>
+  <div class="steps">
+    <div class="step">
+      <span class="step-num">01</span>
+      <div class="step-title">UPLOAD CHART</div>
+      <div class="step-desc">Take a screenshot or export your NEPSE chart from Sharesansar, Merolagani, or any broker platform.</div>
+    </div>
+    <div class="step">
+      <span class="step-num">02</span>
+      <div class="step-title">ADD CONTEXT</div>
+      <div class="step-desc">Enter the stock symbol, timeframe, and current price for more accurate and specific signals.</div>
+    </div>
+    <div class="step">
+      <span class="step-num">03</span>
+      <div class="step-title">AI ANALYZES</div>
+      <div class="step-desc">Claude's vision AI scans patterns, trends, indicators, volume, support and resistance levels in seconds.</div>
+    </div>
+    <div class="step">
+      <span class="step-num">04</span>
+      <div class="step-title">GET SIGNAL</div>
+      <div class="step-desc">Receive a clear Buy/Sell/Hold signal with entry zone, stop-loss, three targets and risk/reward ratio.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DISCLAIMER -->
+<div class="disclaimer">
+  ⚠️ &nbsp; <strong>Disclaimer:</strong> ChartSignal AI is for educational and informational purposes only. This is not financial advice. All trading involves risk. Always conduct your own research and consult a qualified financial advisor before making investment decisions in NEPSE or any stock market.
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2025 <a href="https://sagarkhanal.com">sagarkhanal.com</a> &nbsp;·&nbsp; ChartSignal AI &nbsp;·&nbsp; Built for NEPSE Traders</p>
+  <p style="opacity:0.45; margin-top:4px;">Powered by Claude AI &nbsp;·&nbsp; Hosted on Cloudflare Pages</p>
+</footer>
+
+<script>
+// ============================================================
+// CONFIGURATION — UPDATE THIS WITH YOUR WORKER URL
+// ============================================================
+const WORKER_URL = 'PASTE_YOUR_WORKER_URL_HERE';
+// Example: 'https://chartsignal-proxy.yourname.workers.dev'
+// See README.md for full setup instructions
+// ============================================================
+
+const fileInput       = document.getElementById('file-input');
+const uploadZone      = document.getElementById('upload-zone');
+const previewImg      = document.getElementById('preview-img');
+const uploadPlaceholder = document.getElementById('upload-placeholder');
+const analyzeBtn      = document.getElementById('analyze-btn');
+const loadingDiv      = document.getElementById('loading');
+const loadingText     = document.getElementById('loading-text');
+const errorDiv        = document.getElementById('error-msg');
+const resultsDiv      = document.getElementById('results');
+
+let imageBase64 = null;
+let imageMime   = 'image/jpeg';
+
+const loadingMessages = [
+  'SCANNING CANDLESTICK PATTERNS...',
+  'DETECTING SUPPORT & RESISTANCE...',
+  'IDENTIFYING TREND DIRECTION...',
+  'READING VOLUME SIGNALS...',
+  'CALCULATING PRICE TARGETS...',
+  'COMPUTING RISK / REWARD RATIO...',
+  'GENERATING TRADE SIGNAL...'
+];
+let loadingIdx = 0;
+let loadingTimer;
+
+// File input change
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) processFile(e.target.files[0]);
+});
+
+// Drag and drop
+uploadZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) processFile(file);
+});
+
+function processFile(file) {
+  if (file.size > 10 * 1024 * 1024) {
+    showError('File too large. Please use an image under 10MB.');
+    return;
+  }
+  imageMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const result = e.target.result;
+    imageBase64 = result.split(',')[1];
+    previewImg.src = result;
+    previewImg.style.display = 'block';
+    uploadPlaceholder.style.display = 'none';
+    analyzeBtn.disabled = false;
+    resultsDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!imageBase64) return;
+
+  if (WORKER_URL === 'PASTE_YOUR_WORKER_URL_HERE') {
+    showError('Worker URL not configured. Please update WORKER_URL in index.html with your Cloudflare Worker URL. See README.md for instructions.');
+    return;
+  }
+
+  const symbol    = document.getElementById('stock-symbol').value.trim().toUpperCase();
+  const timeframe = document.getElementById('timeframe').value;
+  const focus     = document.getElementById('focus').value;
+  const price     = document.getElementById('current-price').value;
+
+  analyzeBtn.disabled = true;
+  loadingDiv.style.display = 'block';
+  resultsDiv.style.display = 'none';
+  errorDiv.style.display = 'none';
+
+  loadingIdx = 0;
+  loadingText.textContent = loadingMessages[0];
+  loadingTimer = setInterval(() => {
+    loadingIdx = (loadingIdx + 1) % loadingMessages.length;
+    loadingText.textContent = loadingMessages[loadingIdx];
+  }, 1300);
+
+  const context = [
+    symbol ? `Stock Symbol: ${symbol}` : 'Stock: Unknown symbol',
+    `Chart Timeframe: ${timeframe}`,
+    `Analysis type: ${focus}`,
+    price ? `Current market price: NPR ${parseFloat(price).toFixed(2)}` : 'Current price: not provided'
+  ].join('\n');
+
+  const prompt = `You are an expert technical analyst specializing in NEPSE (Nepal Stock Exchange) stocks with 15+ years of experience.
+
+Carefully analyze this stock chart image and provide a comprehensive buy/sell signal analysis.
+
+Chart Context:
+${context}
+
+Instructions:
+- Identify all visible candlestick patterns, chart patterns, and technical indicators
+- Determine the primary trend and momentum
+- Find key support and resistance levels
+- If current price is given, provide specific NPR price levels for entries, stop-loss and targets
+- If no price given, describe levels relatively (e.g., "just above the recent high")
+- Be honest about signal strength — use NEUTRAL if chart is unclear
+
+Respond ONLY with this exact JSON structure (no markdown, no backticks, no preamble):
+{
+  "signal": "BUY",
+  "confidence": 75,
+  "buy_zone": "NPR 1200-1230",
+  "stop_loss": "NPR 1150",
+  "target_1": "NPR 1320",
+  "target_2": "NPR 1420",
+  "target_3": "NPR 1550",
+  "risk_reward": "1:2.4",
+  "trend": "Strong uptrend with higher highs and higher lows",
+  "patterns": "Bullish engulfing candle on daily chart, Cup and Handle formation visible",
+  "indicators": "RSI at 58 (room to run), MACD bullish crossover, price above 20 and 50 MA",
+  "support_levels": "NPR 1180, NPR 1120",
+  "resistance_levels": "NPR 1320, NPR 1420",
+  "volume_analysis": "Above average volume on breakout candle confirms bullish momentum",
+  "summary": "Detailed 2-3 paragraph analysis explaining the trade setup, key reasons for the signal, what to watch for, and ideal entry strategy.",
+  "risk_warning": "Stop loss is mandatory. Market can be volatile — size position according to your risk tolerance."
+}
+
+Signal must be one of: BUY, SELL, HOLD, NEUTRAL`;
+
+  try {
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: imageMime, data: imageBase64 }
+            },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    clearInterval(loadingTimer);
+    loadingDiv.style.display = 'none';
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.error) throw new Error(data.error.message || 'API returned an error');
+
+    const rawText = (data.content || []).map(b => b.text || '').join('');
+    if (!rawText) throw new Error('Empty response from API. Please try again.');
+
+    let analysis;
+    try {
+      const clean = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      const jsonStart = clean.indexOf('{');
+      const jsonEnd = clean.lastIndexOf('}');
+      if (jsonStart === -1) throw new Error('No JSON found');
+      analysis = JSON.parse(clean.slice(jsonStart, jsonEnd + 1));
+    } catch {
+      throw new Error('Could not parse the analysis response. Please try uploading the chart again.');
+    }
+
+    renderResults(analysis);
+
+  } catch (err) {
+    clearInterval(loadingTimer);
+    loadingDiv.style.display = 'none';
+    showError('Analysis failed: ' + (err.message || 'Unknown error. Please try again.'));
+    analyzeBtn.disabled = false;
+  }
+});
+
+function renderResults(a) {
+  const signalEl = document.getElementById('signal-badge');
+  signalEl.className = 'signal-badge';
+
+  const sig = (a.signal || 'NEUTRAL').toUpperCase();
+  const icons = { BUY:'⬆', SELL:'⬇', HOLD:'⬤', NEUTRAL:'—' };
+  const cls   = { BUY:'signal-buy', SELL:'signal-sell', HOLD:'signal-hold', NEUTRAL:'signal-neutral' };
+
+  signalEl.classList.add(cls[sig] || 'signal-neutral');
+  signalEl.innerHTML = `${icons[sig] || '—'} &nbsp; ${sig}`;
+
+  const conf = Math.min(100, Math.max(0, parseInt(a.confidence) || 0));
+  document.getElementById('conf-label').textContent = conf + '%';
+  setTimeout(() => {
+    document.getElementById('conf-fill').style.width = conf + '%';
+  }, 100);
+
+  document.getElementById('buy-zone').textContent  = a.buy_zone   || '—';
+  document.getElementById('stop-loss').textContent = a.stop_loss  || '—';
+  document.getElementById('target1').textContent   = a.target_1   || '—';
+  document.getElementById('target2').textContent   = a.target_2   || '—';
+  document.getElementById('target3').textContent   = a.target_3   || '—';
+  document.getElementById('rratio').textContent    = a.risk_reward || '—';
+
+  const sections = [];
+  if (a.trend)             sections.push(`<div class="analysis-section"><strong>// TREND</strong><br>${a.trend}</div>`);
+  if (a.patterns)          sections.push(`<div class="analysis-section"><strong>// PATTERNS DETECTED</strong><br>${a.patterns}</div>`);
+  if (a.indicators)        sections.push(`<div class="analysis-section"><strong>// INDICATORS</strong><br>${a.indicators}</div>`);
+  if (a.support_levels)    sections.push(`<div class="analysis-section"><strong>// SUPPORT</strong> ${a.support_levels} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>RESISTANCE</strong> ${a.resistance_levels || '—'}</div>`);
+  if (a.volume_analysis)   sections.push(`<div class="analysis-section"><strong>// VOLUME</strong><br>${a.volume_analysis}</div>`);
+  if (a.summary)           sections.push(`<div class="analysis-section" style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(99,207,143,0.1);">${a.summary}</div>`);
+  if (a.risk_warning)      sections.push(`<div class="analysis-section" style="margin-top:0.75rem;padding:0.875rem 1rem;background:rgba(255,181,71,0.06);border:1px solid rgba(255,181,71,0.2);border-radius:8px;color:#ffb547;font-size:0.82rem;">⚠ &nbsp;${a.risk_warning}</div>`);
+
+  document.getElementById('analysis-text').innerHTML = sections.join('');
+  resultsDiv.style.display = 'block';
+  analyzeBtn.disabled = false;
+
+  setTimeout(() => {
+    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
+}
+
+function showError(msg) {
+  errorDiv.innerHTML = '⚠ &nbsp;' + msg;
+  errorDiv.style.display = 'block';
+}
+</script>
+</body>
+</html>
